@@ -60,5 +60,49 @@ function fillExample() {
     return data
   }
 
+  async function requestJson(endpoint, options) {
+    const response = await fetch(`${API_URL}${endpoint}`, options)
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || 'Er ging iets mis.')
+    return data
+  }
+
+  async function analyzeText() {
+    setLoading(true)
+    setError('')
+    setResult(null)
+
+    try {
+      const data = await requestJson('/api/analyze-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...textForm, tone, target, contextScore }),
+      })
+      setResult(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+   async function rewriteText() {
+    setLoading(true)
+    setError('')
+    setResult(null)
+
+    try {
+      const data = await requestJson('/api/rewrite-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...textForm, tone, target, length }),
+      })
+      setResult(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
 
 export default App
