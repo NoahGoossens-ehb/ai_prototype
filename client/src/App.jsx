@@ -103,6 +103,45 @@ function fillExample() {
       setLoading(false)
     }
   }
+ async function analyzeImage() {
+    if (!image) {
+      setError('Upload eerst een screenshot van je portfolio.')
+      return
+    }
 
+    setLoading(true)
+    setError('')
+    setResult(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('image', image)
+      formData.append('tone', tone)
+      formData.append('target', target)
+
+      const data = await requestJson('/api/analyze-image', {
+        method: 'POST',
+        body: formData,
+      })
+      setResult(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handleImageChange(event) {
+    const file = event.target.files?.[0]
+    setImage(file || null)
+    setResult(null)
+    setError('')
+
+    if (file) {
+      setImagePreview(URL.createObjectURL(file))
+    } else {
+      setImagePreview('')
+    }
+  }
 
 export default App
