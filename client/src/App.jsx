@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import './App.css'
 
+// API-link: gebruikt de .env link, anders lokaal op poort 3001
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
+//startwaarden voor alle tekstvelden van het formulier.
 const emptyTextForm = {
   projectName: '',
   context: '',
@@ -12,6 +14,8 @@ const emptyTextForm = {
   result: '',
   currentText: '',
 }
+
+// Checklist die getoond wordt bij het analyseren van een screenshot
 const checklist = [
   'Eigen rol is duidelijk',
   'Gebruikte tools worden vermeld',
@@ -21,27 +25,41 @@ const checklist = [
 ]
 
 function App() {
+  //state houdt bij welke tab actief is: tekst, herwerken of screenshot
   const [activeTab, setActiveTab] = useState('text')
+
+  //hier wordt alle info van het tekstformulier bijgehouden
   const [textForm, setTextForm] = useState(emptyTextForm)
+
+  //extra instellingen die mee naar de AI gestuurd worden(standaartwaardes bijgezet)
   const [tone, setTone] = useState('professioneel')
   const [target, setTarget] = useState('portfolio')
   const [length, setLength] = useState('middellang')
+
+  //state voor de screenshot en de preview ervan
   const [image, setImage] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
+
+  // state voor het resultaat, laden en foutmeldingen
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  //berekent hoeveel belangrijke velden al goed ingevuld zijn
+  //useMemo zorgt ervoor dat dit alleen opnieuw berekend wordt als textForm verandert
   const contextScore = useMemo(() => {
     const required = ['context', 'role', 'tools', 'process', 'result']
     const filled = required.filter((field) => textForm[field].trim().length > 8)
     return Math.round((filled.length / required.length) * 100)
   }, [textForm])
 
+  //past 1 veld in het formulier aan zonder de andere velden te wissen
   function updateField(field, value) {
     setTextForm((current) => ({ ...current, [field]: value }))
   }
-function fillExample() {
+
+  // vult dummy data in zodat de gebruiker snel een voorbeeld kan testen
+  function fillExample() {
     setTextForm({
       projectName: 'Basisschool Nieuwland website',
       context: 'Een nieuwe website voor een basisschool in Brussel die ouders sneller informatie laat vinden.',
@@ -53,13 +71,18 @@ function fillExample() {
     })
   }
 
+  // Algemene functie om data naar de backend te sturen en JSON terug te krijgen
   async function requestJson(endpoint, options) {
     const response = await fetch(`${API_URL}${endpoint}`, options)
     const data = await response.json()
+
+    // Als de server een fout geeft, tonen we die fout in de interface
     if (!response.ok) throw new Error(data.error || 'Er ging iets mis.')
+
     return data
   }
 
+  // Stuurt de ingevulde portfolio-info naar de backend voor analyse
   async function analyzeText() {
     setLoading(true)
     setError('')
@@ -71,14 +94,18 @@ function fillExample() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...textForm, tone, target, contextScore }),
       })
+
       setResult(data)
     } catch (err) {
       setError(err.message)
     } finally {
+      // Loading wordt altijd terug false, ook als er een fout is
       setLoading(false)
     }
   }
-   async function rewriteText() {
+
+  // Stuurt de tekst naar de backend om die te laten herschrijven
+  async function rewriteText() {
     setLoading(true)
     setError('')
     setResult(null)
@@ -89,6 +116,7 @@ function fillExample() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...textForm, tone, target, length }),
       })
+
       setResult(data)
     } catch (err) {
       setError(err.message)
@@ -96,7 +124,9 @@ function fillExample() {
       setLoading(false)
     }
   }
- async function analyzeImage() {
+
+  // Stuurt een screenshot naar de backend voor visuele feedback
+  async function analyzeImage() {
     if (!image) {
       setError('Upload eerst een screenshot van je portfolio.')
       return
@@ -107,6 +137,7 @@ function fillExample() {
     setResult(null)
 
     try {
+      // FormData is nodig omdat we hier een afbeelding uploaden
       const formData = new FormData()
       formData.append('image', image)
       formData.append('tone', tone)
@@ -116,6 +147,7 @@ function fillExample() {
         method: 'POST',
         body: formData,
       })
+
       setResult(data)
     } catch (err) {
       setError(err.message)
@@ -124,20 +156,24 @@ function fillExample() {
     }
   }
 
+  //wordt uitgevoerd wanneer de gebruiker een screenshot kiest
   function handleImageChange(event) {
     const file = event.target.files?.[0]
     setImage(file || null)
     setResult(null)
     setError('')
 
+    //maakt een tijdelijke preview-link voor de afbeelding
     if (file) {
       setImagePreview(URL.createObjectURL(file))
     } else {
       setImagePreview('')
     }
   }
-   return (
+
+  return (
     <main className="app-shell">
+      {/*bovenste introblok van de applicatie*/}
       <section className="hero-section">
         <div className="hero-copy">
           <p className="eyebrow">AI Portfolio Coach</p>
@@ -146,6 +182,7 @@ function fillExample() {
             PortfoliAI Coach analyseert portfolio-teksten en screenshots. De tool geeft feedback op
             structuur, eigen rol, gebruikte tools, proces, resultaat en visuele presentatie.
           </p>
+
           <div className="hero-actions">
             <button className="primary-button" onClick={fillExample}>Vul voorbeeld in</button>
             <a className="ghost-button" href="#workspace">Start analyse</a>
@@ -163,6 +200,7 @@ function fillExample() {
         </div>
       </section>
 
+      {/*kleine infokaarten met waarschuwingen voor de gebruike */}
       <section className="notice-grid">
         <article className="notice-card">
           <strong>Privacy</strong>
@@ -178,6 +216,7 @@ function fillExample() {
         </article>
       </section>
 
+      {/*werkruimte waar de gebruiker tekst of screenshots kan analyseren */}
       <section id="workspace" className="workspace">
         <div className="tabs" role="tablist" aria-label="Analyse opties">
           <button className={activeTab === 'text' ? 'active' : ''} onClick={() => setActiveTab('text')}>Tekst analyseren</button>
@@ -192,6 +231,7 @@ function fillExample() {
               <h2>{activeTab === 'image' ? 'Upload je portfolio-screenshot' : 'Geef genoeg context mee'}</h2>
             </div>
 
+            {/*instellingen die bepalen hoe de AI moet antwoorden */}
             <div className="settings-row">
               <label>
                 Tone of voice
@@ -202,6 +242,7 @@ function fillExample() {
                   <option value="persoonlijk">Persoonlijk</option>
                 </select>
               </label>
+
               <label>
                 Context
                 <select value={target} onChange={(event) => setTarget(event.target.value)}>
@@ -212,6 +253,8 @@ function fillExample() {
                   <option value="GitHub README">GitHub README</option>
                 </select>
               </label>
+
+              {/*lengte wordt alleen getoond als de gebruiker tekst wil herwerken */}
               {activeTab === 'rewrite' && (
                 <label>
                   Lengte
@@ -224,37 +267,45 @@ function fillExample() {
               )}
             </div>
 
+            {/*als het geen screenshot-tab is, tonen we de tekstvelden*/}
             {activeTab !== 'image' ? (
               <>
                 <label>
                   Projectnaam
                   <input value={textForm.projectName} onChange={(event) => updateField('projectName', event.target.value)} placeholder="Bijvoorbeeld: Portfolio website" />
                 </label>
+
                 <label>
                   Projectcontext
                   <textarea value={textForm.context} onChange={(event) => updateField('context', event.target.value)} placeholder="Wat was het project en voor wie was het bedoeld?" />
                 </label>
+
                 <label>
                   Mijn rol
                   <textarea value={textForm.role} onChange={(event) => updateField('role', event.target.value)} placeholder="Wat heb jij zelf gedaan?" />
                 </label>
+
                 <label>
                   Tools en technologieën
                   <input value={textForm.tools} onChange={(event) => updateField('tools', event.target.value)} placeholder="React, Figma, CSS, JavaScript..." />
                 </label>
+
                 <label>
                   Proces
                   <textarea value={textForm.process} onChange={(event) => updateField('process', event.target.value)} placeholder="Welke stappen heb je gevolgd?" />
                 </label>
+
                 <label>
                   Eindresultaat
                   <textarea value={textForm.result} onChange={(event) => updateField('result', event.target.value)} placeholder="Wat was het concrete resultaat?" />
                 </label>
+
                 <label>
                   Bestaande portfolio-tekst
                   <textarea className="large-textarea" value={textForm.currentText} onChange={(event) => updateField('currentText', event.target.value)} placeholder="Plak hier je huidige tekst of eerste versie." />
                 </label>
 
+                {/*toont visueel hoe volledig de context is ingevuld*/}
                 <div className="score-box">
                   <div>
                     <strong>Contextscore</strong>
@@ -269,11 +320,13 @@ function fillExample() {
               </>
             ) : (
               <>
+                {/*uploadveld voor de screenshot */}
                 <label className="upload-box">
                   <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageChange} />
                   <span>{image ? image.name : 'Kies een screenshot van je portfolio'}</span>
                 </label>
 
+                {/*preview zodat de gebruiker ziet welke afbeelding gekozen is */}
                 {imagePreview && <img className="preview-image" src={imagePreview} alt="Voorbeeld van geüploade portfolio screenshot" />}
 
                 <ul className="checklist">
@@ -286,6 +339,7 @@ function fillExample() {
               </>
             )}
 
+            {/* Foutmelding wordt alleen getoond als er echt een fout is */}
             {error && <p className="error-message">{error}</p>}
           </section>
 
@@ -295,7 +349,10 @@ function fillExample() {
     </main>
   )
 }
+
+// Apart component voor het rechterpaneel met feedback
 function ResultPanel({ result, loading }) {
+  // Tijdens het laden tonen we een simpele loading state
   if (loading) {
     return (
       <section className="panel result-panel loading-panel">
@@ -306,6 +363,7 @@ function ResultPanel({ result, loading }) {
     )
   }
 
+  // Als er nog geen resultaat is, tonen we een lege startboodschap
   if (!result) {
     return (
       <section className="panel result-panel empty-state">
@@ -319,6 +377,7 @@ function ResultPanel({ result, loading }) {
     )
   }
 
+  // Als er wel een resultaat is, tonen we alle onderdelen van de feedback
   return (
     <section className="panel result-panel">
       <div className="result-header">
@@ -326,6 +385,8 @@ function ResultPanel({ result, loading }) {
           <p className="eyebrow">Analyse resultaat</p>
           <h2>{result.status || result.firstImpression || 'Portfolio feedback'}</h2>
         </div>
+
+        {/* Score wordt alleen getoond als de backend een getal teruggeeft*/}
         {typeof result.score === 'number' && <div className="big-score">{result.score}<span>/100</span></div>}
       </div>
 
@@ -338,6 +399,7 @@ function ResultPanel({ result, loading }) {
       <ResultList title="Suggesties" items={result.suggestions} />
       <ResultList title="Prioriteit" items={result.priorityFixes} />
 
+      {/* Bij tekst herwerken komt hier de verbeterde versie*/}
       {result.improvedText && (
         <article className="improved-card">
           <h3>Verbeterde versie</h3>
@@ -347,7 +409,10 @@ function ResultPanel({ result, loading }) {
     </section>
   )
 }
+
+// Herbruikbaar component om lijsten met feedback te tonen
 function ResultList({ title, items }) {
+  // Als de lijst leeg is, tonen we niets
   if (!items || items.length === 0) return null
 
   return (
