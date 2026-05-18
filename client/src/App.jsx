@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import './App.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
@@ -51,13 +51,6 @@ function fillExample() {
       result: 'Een duidelijke, warme en toegankelijke website met betere navigatie en overzichtelijke informatie.',
       currentText: 'Ik maakte met mijn team een website voor een basisschool. De website is duidelijk en werkt op verschillende schermen.',
     })
-  }
-
-  async function requestJson(endpoint, options) {
-    const response = await fetch(`${API_URL}${endpoint}`, options)
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.error || 'Er ging iets mis.')
-    return data
   }
 
   async function requestJson(endpoint, options) {
