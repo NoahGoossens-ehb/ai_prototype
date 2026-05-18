@@ -354,6 +354,17 @@ function ResultPanel({ result, loading }) {
     </section>
   )
 }
+function ResultList({ title, items }) {
+  if (!items || items.length === 0) return null
 
+  return (
+    <article className="result-card">
+      <h3>{title}</h3>
+      <ul>
+        {items.map((item, index) => <li key={`${title}-${index}`}>{item}</li>)}
+      </ul>
+    </article>
+  )
+}
 
 export default App
