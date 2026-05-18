@@ -259,11 +259,57 @@ function clean(value) {
 function parseJsonResponse(response, fallback) {
   try {
     const content = response.choices?.[0]?.message?.content
-    return JSON.parse(content)
+    const parsed = JSON.parse(content)
+    return normalizeApiResult(parsed, fallback)
   } catch (error) {
     console.error('Kon JSON niet parsen, fallback wordt gebruikt.', error)
     return fallback
   }
+}
+
+function normalizeApiResult(result, fallback) {
+  if (!result || typeof result !== 'object') {
+    return fallback
+  }
+
+  const normalizedScore = normalizeScore(result.score)
+
+  return {
+    ...result,
+    score: normalizedScore ?? fallback.score,
+  }
+}
+
+function normalizeScore(rawScore) {
+  if (typeof rawScore === 'number' && Number.isFinite(rawScore)) {
+    if (rawScore >= 0 && rawScore <= 10) {
+      return Math.round(rawScore * 10)
+    }
+
+    return clamp(Math.round(rawScore), 0, 100)
+  }
+
+  if (typeof rawScore === 'string') {
+    const trimmed = rawScore.trim()
+    const fractionMatch = trimmed.match(/^(\d+(?:\.\d+)?)\s*\/\s*(10|100)$/)
+
+    if (fractionMatch) {
+      const value = Number(fractionMatch[1])
+      const scale = Number(fractionMatch[2])
+      if (Number.isFinite(value)) {
+        return scale === 10
+          ? clamp(Math.round(value * 10), 0, 100)
+          : clamp(Math.round(value), 0, 100)
+      }
+    }
+
+    const numericValue = Number(trimmed.replace(',', '.'))
+    if (Number.isFinite(numericValue)) {
+      return normalizeScore(numericValue)
+    }
+  }
+
+  return null
 }
 
 function localTextAnalysis(portfolio) {
