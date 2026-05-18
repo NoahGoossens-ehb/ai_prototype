@@ -156,3 +156,72 @@ Geef JSON terug met exact deze structuur:
     res.status(500).json({ error: 'Er ging iets mis bij het herwerken van de tekst.' })
   }
 })
+
+
+app.post('/api/analyze-image', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Geen afbeelding ontvangen.' })
+    }
+
+    if (!req.file.mimetype.startsWith('image/')) {
+      return res.status(400).json({ error: 'Upload een geldig afbeeldingsbestand.' })
+    }
+
+    if (!hasApiKey) {
+      return res.json(localImageAnalysis(req.file))
+    }
+
+    const base64Image = req.file.buffer.toString('base64')
+    const imageUrl = `data:${req.file.mimetype};base64,${base64Image}`
+
+    const response = await client.chat.completions.create({
+      model: MODEL,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `
+Je bent PortfoliAI Coach, een AI-coach die portfolio-screenshots analyseert.
+Geef concrete UX- en designfeedback voor studenten en junior makers.
+Let op visuele hiërarchie, layout, typografie, contrast, leesbaarheid, projectpresentatie, call-to-action, professionaliteit en ontbrekende info.
+Vermeld dat feedback een suggestie is en geen absolute beoordeling.
+Antwoord altijd in geldig JSON-formaat.
+          `.trim(),
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `
+Analyseer deze portfolio-screenshot voor context: ${req.body.target || 'portfolio'}.
+Gewenste toon: ${req.body.tone || 'professioneel'}.
+
+Geef JSON terug met exact deze structuur:
+{
+  "score": number,
+  "firstImpression": string,
+  "strengths": string[],
+  "designProblems": string[],
+  "missingParts": string[],
+  "suggestions": string[],
+  "priorityFixes": string[]
+}
+              `.trim(),
+            },
+            {
+              type: 'image_url',
+              image_url: { url: imageUrl },
+            },
+          ],
+        },
+      ],
+    })
+
+    res.json(parseJsonResponse(response, localImageAnalysis(req.file)))
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Er ging iets mis bij de beeldanalyse.' })
+  }
+})
