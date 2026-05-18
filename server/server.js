@@ -297,3 +297,54 @@ function localTextAnalysis(portfolio) {
     improvedText: buildImprovedText(portfolio),
   }
 }
+function localRewrite(portfolio) {
+  const missingParts = getMissingParts(portfolio)
+
+  return {
+    score: clamp(82 - missingParts.length * 8, 35, 84),
+    status: 'Herwerkte demo-versie',
+    strengths: ['De tekst is herschreven met een duidelijkere structuur.', 'De toon is aangepast aan de gekozen context.'],
+    missingParts,
+    suggestions: ['Voeg ontbrekende informatie toe voor een persoonlijkere versie.', 'Laat overdreven claims weg en blijf eerlijk over je rol.'],
+    improvedText: buildImprovedText(portfolio),
+  }
+}
+
+function localImageAnalysis(file) {
+  return {
+    score: 68,
+    firstImpression: `Demo-feedback voor ${file.originalname}: de screenshot werd ontvangen, maar zonder API-key kan de inhoud niet echt visueel geanalyseerd worden.`,
+    strengths: ['De upload werkt en bestanden worden niet lokaal opgeslagen.', 'De analyse focust op portfolio-criteria in plaats van algemene AI-output.'],
+    designProblems: ['Controleer of de visuele hiërarchie duidelijk is.', 'Let op contrast, leesbaarheid en voldoende witruimte.', 'Zorg dat projectkaarten niet alleen mooi zijn, maar ook inhoudelijk duidelijk.'],
+    missingParts: ['Eigen rol per project', 'Gebruikte tools', 'Duidelijke call-to-action', 'Contactmogelijkheid'],
+    suggestions: ['Voeg per project een korte rolbeschrijving toe.', 'Maak de belangrijkste knop visueel sterker.', 'Gebruik consistente typografie en voldoende spacing.'],
+    priorityFixes: ['Maak je eigen bijdrage zichtbaar.', 'Verbeter scanbaarheid.', 'Voeg duidelijke contactactie toe.'],
+  }
+}
+
+function getMissingParts(portfolio) {
+  const checks = [
+    ['Projectcontext', portfolio.context],
+    ['Eigen rol', portfolio.role],
+    ['Gebruikte tools', portfolio.tools],
+    ['Proces', portfolio.process],  
+    ['Eindresultaat', portfolio.result],
+  ]
+
+  return checks.filter(([, value]) => value.length < 12).map(([label]) => label)
+}
+
+function buildImprovedText(portfolio) {
+  const name = portfolio.projectName || 'Dit project'
+  const context = portfolio.context || 'werd ontwikkeld om een duidelijk probleem of doel aan te pakken'
+  const role = portfolio.role || 'Mijn rol moet nog concreter beschreven worden'
+  const tools = portfolio.tools || 'de gebruikte tools moeten nog worden toegevoegd'
+  const process = portfolio.process || 'Het proces kan nog duidelijker uitgelegd worden'
+  const result = portfolio.result || 'Het eindresultaat moet nog concreet gemaakt worden'
+
+  return `${name} is een project dat ${context}. ${role}. Tijdens het project werkte ik met ${tools}. ${process}. Het resultaat is ${result}. Deze tekst kan sterker worden door meer persoonlijke keuzes, concrete resultaten en eerlijke details over mijn eigen bijdrage toe te voegen.`
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max)
+}
