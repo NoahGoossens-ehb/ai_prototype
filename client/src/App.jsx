@@ -302,5 +302,29 @@ function fillExample() {
     </main>
   )
 }
+function ResultPanel({ result, loading }) {
+  if (loading) {
+    return (
+      <section className="panel result-panel loading-panel">
+        <div className="loader" />
+        <h2>Feedback wordt opgebouwd</h2>
+        <p>De AI controleert inhoud, structuur, eerlijkheid, ontbrekende context en bruikbaarheid.</p>
+      </section>
+    )
+  }
+
+  if (!result) {
+    return (
+      <section className="panel result-panel empty-state">
+        <p className="eyebrow">Output</p>
+        <h2>Je feedback verschijnt hier.</h2>
+        <p>
+          De output wordt bewust opgesplitst in score, sterktes, problemen, ontbrekende info en
+          prioritaire verbeteringen. Zo blijft de feedback bruikbaar en niet te algemeen.
+        </p>
+      </section>
+    )
+  }
+
 
 export default App
