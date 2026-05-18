@@ -326,5 +326,34 @@ function ResultPanel({ result, loading }) {
     )
   }
 
+  return (
+    <section className="panel result-panel">
+      <div className="result-header">
+        <div>
+          <p className="eyebrow">Analyse resultaat</p>
+          <h2>{result.status || result.firstImpression || 'Portfolio feedback'}</h2>
+        </div>
+        {typeof result.score === 'number' && <div className="big-score">{result.score}<span>/100</span></div>}
+      </div>
+
+      {result.message && <p className="feedback-message">{result.message}</p>}
+      {result.firstImpression && <p className="feedback-message">{result.firstImpression}</p>}
+
+      <ResultList title="Sterktes" items={result.strengths} />
+      <ResultList title="Wat mist er?" items={result.missingParts} />
+      <ResultList title="Problemen" items={result.problems || result.designProblems} />
+      <ResultList title="Suggesties" items={result.suggestions} />
+      <ResultList title="Prioriteit" items={result.priorityFixes} />
+
+      {result.improvedText && (
+        <article className="improved-card">
+          <h3>Verbeterde versie</h3>
+          <p>{result.improvedText}</p>
+        </article>
+      )}
+    </section>
+  )
+}
+
 
 export default App
