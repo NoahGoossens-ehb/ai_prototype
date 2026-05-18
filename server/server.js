@@ -225,3 +225,75 @@ Geef JSON terug met exact deze structuur:
     res.status(500).json({ error: 'Er ging iets mis bij de beeldanalyse.' })
   }
 })
+app.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    return res.status(400).json({ error: 'De afbeelding is te groot. Gebruik maximaal 5 MB.' })
+  }
+  next(error)
+})
+
+app.listen(PORT, () => {
+  console.log(`PortfoliAI Coach API running on http://localhost:${PORT}`)
+})
+
+function normalizePortfolioInput(body) {
+  return {
+    projectName: clean(body.projectName),
+    context: clean(body.context),
+    role: clean(body.role),
+    tools: clean(body.tools),
+    process: clean(body.process),
+    result: clean(body.result),
+    currentText: clean(body.currentText),
+    tone: clean(body.tone || 'professioneel'),
+    target: clean(body.target || 'portfolio'),
+    length: clean(body.length || 'middellang'),
+    contextScore: Number(body.contextScore || 0),
+  }
+}
+
+function clean(value) {
+  return String(value || '').trim().slice(0, 4000)
+}
+
+function parseJsonResponse(response, fallback) {
+  try {
+    const content = response.choices?.[0]?.message?.content
+    return JSON.parse(content)
+  } catch (error) {
+    console.error('Kon JSON niet parsen, fallback wordt gebruikt.', error)
+    return fallback
+  }
+}
+
+function localTextAnalysis(portfolio) {
+  const missingParts = getMissingParts(portfolio)
+  const baseScore = 100 - missingParts.length * 13
+  const textBonus = portfolio.currentText.length > 180 ? 8 : 0
+  const score = clamp(baseScore + textBonus, 20, 88)
+
+  return {
+    score,
+    status: score < 55 ? 'Te weinig context' : score < 75 ? 'Bruikbaar, maar nog te algemeen' : 'Sterke basis met verbeterpunten',
+    message: hasApiKey
+      ? 'Analyse afgerond.'
+      : 'Demo-feedback: voeg een OPENAI_API_KEY toe voor echte AI-analyse.',
+    strengths: [
+      portfolio.projectName ? 'Het project heeft een duidelijke naam.' : 'De tool kan al basisfeedback geven op je input.',
+      portfolio.context ? 'De projectcontext is aanwezig.' : 'De structuur maakt zichtbaar welke informatie ontbreekt.',
+      portfolio.result ? 'Het eindresultaat wordt vermeld.' : 'De feedback helpt om concreter te worden.',
+    ],
+    missingParts,
+    problems: [
+      missingParts.length > 0 ? 'De tekst mist nog belangrijke context en kan daardoor algemeen klinken.' : 'De informatie is aanwezig, maar kan nog sterker geformuleerd worden.',
+      'Controleer of je eigen bijdrage eerlijk en concreet wordt beschreven.',
+    ],
+    suggestions: [
+      'Beschrijf wat jij zelf hebt ontworpen, gebouwd of beslist.',
+      'Vermeld tools en technologieën alleen als ze relevant zijn voor het project.',
+      'Gebruik concrete resultaten in plaats van algemene woorden zoals “mooi” of “goed”.',
+    ],
+    priorityFixes: missingParts.slice(0, 3),
+    improvedText: buildImprovedText(portfolio),
+  }
+}
